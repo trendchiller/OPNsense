@@ -4,3 +4,6 @@
 for BACKUP in captiveportal dhcpleases netflow rrd; do
 	/usr/local/etc/rc.backup_${BACKUP} restore
 done
+
+# Flush cache, kind of a backup now and maybe even more so in the future
+configctl unbound cache flush
