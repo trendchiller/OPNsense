@@ -67,6 +67,7 @@
                     <on>Append client's IP (on)</on>
                     <off>Set forward header to unknown (off)</off>
                     <transparent>Do not alter forward header (transparent)</transparent>
+                    <delete>Remove forward header (delete)</delete>
                     <truncate>Replace all with client's IP (truncate)</truncate>
                 </OptionValues>
             </forwardedForHandling>
@@ -393,6 +394,18 @@
                 <mimeType type="CSVListField">
                     <Required>N</Required>
                 </mimeType>
+                <googleapps type="HostnameField">
+                    <Required>N</Required>
+                    <mask>/^([a-zA-Z0-9]){0,}\.([a-zA-Z0-9].){0,}/</mask>
+                    <ValidationMessage>Please enter a valid domain name here</ValidationMessage>
+                </googleapps>
+                <youtube type="OptionField">
+                    <Required>N</Required>
+                    <OptionValues>
+                        <strict>Strict</strict>
+                        <moderate>Moderate</moderate>
+                    </OptionValues>
+                </youtube>
                 <safePorts type="CSVListField">
                     <default>80:http,21:ftp,443:https,70:gopher,210:wais,1025-65535:unregistered ports,280:http-mgmt,488:gss-http,591:filemaker,777:multiling http</default>
                     <mask>/^([ \-0-9a-zA-Z:,])*/u</mask>

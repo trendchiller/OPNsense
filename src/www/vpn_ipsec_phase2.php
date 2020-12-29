@@ -271,27 +271,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
     } elseif ($pconfig['mode'] == 'route-based') {
         // validate if both tunnel networks are using the correct address family
-        $protocol = 'inet';
-        foreach ($config['ipsec']['phase1'] as $phase1ent) {
-            if ($phase1ent['ikeid'] == $pconfig['ikeid']) {
-                $protocol = $phase1ent['protocol'];
-                break;
-            }
-        }
-        if ($protocol == 'inet') {
-            if (!is_ipaddrv4($pconfig['tunnel_local'])) {
+        if (!is_ipaddr($pconfig['tunnel_local']) || !is_ipaddr($pconfig['tunnel_remote'])) {
+            if (!is_ipaddr($pconfig['tunnel_local'])) {
                 $input_errors[] = gettext('A valid local network IP address must be specified.');
             }
-            if (!is_ipaddrv4($pconfig['tunnel_remote'])) {
+            if (!is_ipaddr($pconfig['tunnel_remote'])) {
                 $input_errors[] = gettext("A valid remote network IP address must be specified.");
             }
-        } else {
-            if (!is_ipaddrv6($pconfig['tunnel_local'])) {
-                $input_errors[] = gettext('A valid local network IP address must be specified.');
-            }
-            if (!is_ipaddrv6($pconfig['tunnel_remote'])) {
-                $input_errors[] = gettext("A valid remote network IP address must be specified.");
-            }
+        } elseif(
+            !(is_ipaddrv4($pconfig['tunnel_local']) && is_ipaddrv4($pconfig['tunnel_remote'])) &&
+            !(is_ipaddrv6($pconfig['tunnel_local']) && is_ipaddrv6($pconfig['tunnel_remote']))
+        ) {
+            $input_errors[] = gettext('A valid local network IP address must be specified.');
+            $input_errors[] = gettext("A valid remote network IP address must be specified.");
         }
     }
     /* Validate enabled phase2's are not duplicates */
@@ -415,7 +407,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (isset($pconfig['mobile'])) {
             $ph2ent['mobile'] = true;
         }
-
+        // attach or generate reqid
+        if ($p2index !== null && !empty($config['ipsec']['phase2'][$p2index]['reqid'])) {
+            $ph2ent['reqid'] = $config['ipsec']['phase2'][$p2index]['reqid'];
+        } else {
+            $reqids = [];
+            foreach ($config['ipsec']['phase2'] as $tmp) {
+                if (!empty($tmp['reqid'])) {
+                    $reqids[] = $tmp['reqid'];
+                }
+            }
+            for ($i=1; $i < 65535; $i++) {
+                if (!in_array($i, $reqids)) {
+                    $ph2ent['reqid'] = $i;
+                    break;
+                }
+            }
+        }
         // save to config
         if ($p2index !== null) {
             $config['ipsec']['phase2'][$p2index] = $ph2ent;
