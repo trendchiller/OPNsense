@@ -59,7 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         // 1 on 1 copy of config attributes
         $copy_fields = "mode,protocol,authmode,dev_mode,interface,local_port
-            ,description,custom_options,crypto,engine,tunnel_network
+            ,description,tlscrypt_enable,custom_options,crypto,engine,tunnel_network
             ,tunnel_networkv6,remote_network,remote_networkv6,gwredir,local_network
             ,local_networkv6,maxclients,compression,passtos,client2client
             ,dynamic_ip,pool_enable,topology_subnet,serverbridge_dhcp
@@ -91,13 +91,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         }
         if (!empty($a_server[$configId]['tls'])) {
             $pconfig['tlsauth_enable'] = "yes";
+            $pconfig['tlscrypt_enable'] = $a_server[$configId]['tlscrypt_enable'];
             $pconfig['tls'] = base64_decode($a_server[$configId]['tls']);
         } else {
             $pconfig['tls'] = null;
             $pconfig['tlsauth_enable'] = null;
+            $pconfig['tlscrypt_enable'] = null;
         }
     } elseif ($act == "new") {
         $pconfig['tlsauth_enable'] = "yes";
+        $pconfig['tlscrypt_enable'] = "yes";
         $pconfig['dh_length'] = 2048;
         $pconfig['dev_mode'] = "tun";
         $pconfig['interface'] = 'any';
@@ -350,7 +353,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
                 openvpn_delete('server', $a_server[$id]);
             }
             // 1 on 1 copy of config attributes
-            $copy_fields = "mode,protocol,dev_mode,local_port,description,crypto,digest,engine
+            $copy_fields = "mode,protocol,dev_mode,local_port,description,tlscrypt_enable,crypto,digest,engine
                 ,tunnel_network,tunnel_networkv6,remote_network,remote_networkv6
                 ,gwredir,local_network,local_networkv6,maxclients,compression
                 ,passtos,client2client,dynamic_ip,pool_enable,topology_subnet,local_group
@@ -527,15 +530,17 @@ $( document ).ready(function() {
       });
       $("#autokey_enable").change();
 
-      $("#tlsauth_enable,#autotls_enable").change(function(){
+      $("#tlsauth_enable,#tlscrypt_enable,#autotls_enable").change(function(){
           if ($("#autotls_enable").is(':checked') || !$("#tlsauth_enable").is(':checked')) {
               $("#tls").parent().hide();
           } else {
               $("#tls").parent().show();
           }
           if ($("#tlsauth_enable").is(':checked')) {
+              $("#tlscrypt_enable").parent().show();
               $("#autotls_enable").parent().show();
           } else {
+              $("#tlscrypt_enable").parent().hide();
               $("#autotls_enable").parent().hide();
           }
       });
@@ -800,12 +805,18 @@ $( document ).ready(function() {
                       <td colspan="2"><strong><?=gettext("Cryptographic Settings"); ?></strong></td>
                     </tr>
                     <tr class="opt_mode opt_mode_p2p_tls opt_mode_server_tls opt_mode_server_user opt_mode_server_tls_user">
-                      <td style="width:22%"><i class="fa fa-info-circle text-muted"></i> <?=gettext("TLS Authentication"); ?></td>
+                      <td style="width:22%"><i class="fa fa-info-circle text-muted"></i> <?=gettext("TLS Security"); ?></td>
                       <td style="width:78%">
                         <div>
                           <input name="tlsauth_enable" id="tlsauth_enable" type="checkbox" value="yes" <?=!empty($pconfig['tlsauth_enable']) ? "checked=\"checked\"" : "" ;?>/>
-                          <?=gettext("Enable authentication of TLS packets"); ?>.
+                          <?=gettext("Enable authentication of the VPN control channel"); ?>.
                         </div>
+                        
+                        <div>
+                          <input name="tlscrypt_enable" id="tlscrypt_enable" type="checkbox" value="yes" <?=!empty($pconfig['tlscrypt_enable']) ? "checked=\"checked\"" : "" ;?>  />
+                          <?=gettext("Enable encryption of the VPN control channel"); ?>.
+                        </div>
+                        
                         <?php if (!$pconfig['tls']) :
 ?>
                         <div>

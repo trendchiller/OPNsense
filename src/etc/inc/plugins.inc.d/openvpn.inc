@@ -903,13 +903,16 @@ function openvpn_reconfigure($mode, $settings, $device_only = false)
                 crl_update($crl);
                 openvpn_add_keyfile($crl['text'], $conf, $mode_id, "crl-verify");
             }
-            if ($settings['tls']) {
+            if (($settings['tls']) && (empty($settings['tlscrypt_enable']))) {
                 if ($mode == "server") {
                     $tlsopt = 0;
                 } else {
                     $tlsopt = 1;
                 }
                 openvpn_add_keyfile($settings['tls'], $conf, $mode_id, "tls-auth", $tlsopt);
+            }
+            elseif (($settings['tls']) && ($settings['tlscrypt_enable'])) {
+                openvpn_add_keyfile($settings['tls'], $conf, $mode_id, "tls-crypt");
             }
             break;
     }
