@@ -264,12 +264,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!empty($pconfig['ntp_server2']) && !is_ipaddr(trim($pconfig['ntp_server2']))) {
             $input_errors[] = gettext("The field 'NTP Server #2' must contain a valid IP address");
         }
-        if (!empty($pconfig['ntp_server3']) && !is_ipaddr(trim($pconfig['ntp_server3']))) {
-            $input_errors[] = gettext("The field 'NTP Server #3' must contain a valid IP address");
-        }
-        if (!empty($pconfig['ntp_server4']) && !is_ipaddr(trim($pconfig['ntp_server4']))) {
-            $input_errors[] = gettext("The field 'NTP Server #4' must contain a valid IP address");
-        }
 
         if (!empty($pconfig['wins_server_enable'])) {
             if (!empty($pconfig['wins_server1']) && !is_ipaddr(trim($pconfig['wins_server1']))) {
@@ -1273,7 +1267,7 @@ endif; ?>
                         endforeach; ?>
                         </select>
                         <div class="hidden" data-for="help_for_compression">
-                            <?=gettext("Compress tunnel packets using the LZO algorithm. Adaptive compression will dynamically disable compression for a period of time if OpenVPN detects that the data in the packets is not being compressed efficiently."); ?>
+                            <?=gettext("Compress tunnel packets using the LZ4/LZO algorithm. The LZ4 generally offers the best preformance with least CPU usage. For backwards compatibility use the LZO (which is identical to the older option --comp-lzo yes). In the partial mode (the option --compress with an empty algorithm) compression is turned off, but the packet framing for compression is still enabled, allowing a different setting to be pushed later. The legacy LZO algorithm with adaptive compression mode will dynamically disable compression for a period of time if OpenVPN detects that the data in the packets is not being compressed efficiently."); ?>
                         </div>
                       </td>
                     </tr>
@@ -1466,7 +1460,7 @@ endif; ?>
                         <div id="netbios_data">
                           <span>
                             <?=gettext("Node Type"); ?>:&nbsp;
-                          </span>
+                          </span><br>
                           <select name='netbios_ntype' class="selectpicker">
 <?php
                           foreach ($netbios_nodetypes as $type => $name) :
@@ -1484,7 +1478,7 @@ endif; ?>
                                                         "(point-to-point name queries to a WINS server), " .
                                                         "m-node (broadcast then query name server), and " .
                                                         "h-node (query name server, then broadcast)."); ?>
-                          </div>
+                          </div><br>
                           <span>
                             <?=gettext("Scope ID"); ?>:&nbsp;
                           </span>

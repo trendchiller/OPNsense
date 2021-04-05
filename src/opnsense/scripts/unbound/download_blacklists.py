@@ -58,8 +58,8 @@ def uri_reader(uri):
                 break
             else:
                 parts = (prev_chop + chop).split('\n')
-                if len(parts) > chop.find('\n'):
-                     prev_chop = parts.pop()
+                if parts[-1] != "\n":
+                    prev_chop = parts.pop()
                 else:
                     prev_chop = ''
                 for part in parts:
@@ -129,7 +129,7 @@ if __name__ == '__main__':
 
                 syslog.syslog(
                     syslog.LOG_NOTICE,
-                    'blacklist download %(uri)s (lines: %(lines)d exclude: %(skip)d black: %(blacklist)d' % file_stats
+                    'blacklist download %(uri)s (lines: %(lines)d exclude: %(skip)d black: %(blacklist)d)' % file_stats
                 )
 
     # write out results

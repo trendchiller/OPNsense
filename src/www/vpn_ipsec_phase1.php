@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
 
         /* mobile client */
         if (isset($_GET['mobile'])) {
-            $pconfig['mobile']=true;
+            $pconfig['mobile'] = true;
         }
         // init empty
         foreach (explode(",", $phase1_fields) as $fieldname) {
@@ -377,6 +377,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET') {
         if (!empty($pconfig['iketype']) && !empty($pconfig['encryption-algorithm']['name']) && !empty($algodata['iketype'])
           && $pconfig['iketype'] != $algodata['iketype'] && $pconfig['encryption-algorithm']['name'] == $algo) {
             $input_errors[] = sprintf(gettext("%s can only be used with IKEv2 type VPNs."), $algodata['name']);
+        }
+    }
+
+    if (!empty($pconfig['ikeid']) && !empty($pconfig['installpolicy'])) {
+        foreach ($config['ipsec']['phase2'] as $phase2ent) {
+            if ($phase2ent['ikeid'] == $pconfig['ikeid'] && $phase2ent['mode'] == 'route-based') {
+                $input_errors[] = gettext(
+                    "Install policy on phase1 is not a valid option when using Route-based phase 2 entries."
+                );
+                break;
+            }
         }
     }
 

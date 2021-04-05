@@ -1,4 +1,4 @@
-# Copyright (c) 2014-2020 Franco Fichtner <franco@opnsense.org>
+# Copyright (c) 2014-2021 Franco Fichtner <franco@opnsense.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions
@@ -28,20 +28,49 @@ all:
 
 .include "Mk/defaults.mk"
 
-CORE_ABI?=	20.7
-CORE_PHP?=	72
+CORE_MESSAGE?=	Carry on my wayward son
+CORE_NAME?=	opnsense-devel
+CORE_TYPE?=	development
+
+CORE_ABI?=	21.1
+CORE_PHP?=	73
 CORE_PYTHON?=	37
 
-.if exists(${GIT}) && exists(${GITVERSION})
-. if ${CORE_ABI} == "20.7"
-CORE_COMMIT!=	${GITVERSION} --exclude=21.1.r\*
-. else
-CORE_COMMIT!=	${GITVERSION}
-. endif
+_CORE_NEXT=	${CORE_ABI:C/\./ /}
+.if ${_CORE_NEXT:[2]} == 7
+CORE_NEXT!=	expr ${_CORE_NEXT:[1]} + 1
+CORE_NEXT:=	${CORE_NEXT}.1
 .else
-CORE_COMMIT=	unknown 0 undefined
+CORE_NEXT=	${_CORE_NEXT:[1]}
+CORE_NEXT:=	${CORE_NEXT}.7
 .endif
 
+.if exists(${GIT}) && exists(${GITVERSION})
+. if ${CORE_TYPE:M[Dd][Ee][Vv]*}
+_NEXTBETA!=	${GIT} tag -l ${CORE_NEXT}.b
+.  if !empty(_NEXTBETA)
+_NEXTMATCH=	--match=${CORE_NEXT}.b
+.  else
+_NEXTDEVEL!=	${GIT} tag -l ${CORE_NEXT}\*
+.   if !empty(_NEXTDEVEL)
+_NEXTMATCH=	--match=${CORE_NEXT}\*
+.   endif
+.  endif
+. elif ${CORE_TYPE:M[Bb][Uu][Ss]*}
+_NEXTMATCH=	'' # XXX verbatim match for now
+. else
+_NEXTSTABLE!=	${GIT} tag -l ${CORE_ABI}\*
+.  if !empty(_NEXTSTABLE)
+_NEXTMATCH=	--match=${CORE_ABI}\*
+.  endif
+. endif
+. if empty(_NEXTMATCH)
+. error Did not find appropriate tag for CORE_ABI=${CORE_ABI}
+. endif
+CORE_COMMIT!=	${GITVERSION} ${_NEXTMATCH}
+.endif
+
+CORE_COMMIT?=	unknown 0 undefined
 CORE_VERSION?=	${CORE_COMMIT:[1]}
 CORE_REVISION?=	${CORE_COMMIT:[2]}
 CORE_HASH?=	${CORE_COMMIT:[3]}
@@ -62,11 +91,7 @@ CORE_REPOSITORY?=	${CORE_ABI}/libressl
 CORE_REPOSITORY?=	unsupported/${CORE_FLAVOUR:tl}
 .endif
 
-CORE_MESSAGE?=		Carry on my wayward son
-CORE_NAME?=		opnsense-devel
-CORE_TYPE?=		development
-
-CORE_COMMENT?=		${CORE_PRODUCT} ${CORE_TYPE} package
+CORE_COMMENT?=		${CORE_PRODUCT} ${CORE_TYPE} release
 CORE_MAINTAINER?=	project@opnsense.org
 CORE_ORIGIN?=		opnsense/${CORE_NAME}
 CORE_PACKAGESITE?=	https://pkg.opnsense.org
@@ -75,11 +100,11 @@ CORE_WWW?=		https://opnsense.org/
 
 CORE_COPYRIGHT_HOLDER?=	Deciso B.V.
 CORE_COPYRIGHT_WWW?=	https://www.deciso.com/
-CORE_COPYRIGHT_YEARS?=	2014-2020
+CORE_COPYRIGHT_YEARS?=	2014-2021
 
 CORE_DEPENDS_amd64?=	beep \
 			bsdinstaller \
-			suricata
+			suricata-devel
 
 CORE_DEPENDS?=		${CORE_DEPENDS_${CORE_ARCH}} \
 			ca_root_nss \
@@ -403,23 +428,32 @@ ${_TARGET}_ARG=		${${_TARGET}_ARGS:[0]}
 .endif
 .endfor
 
-diff:
+ensure-stable:
+	@if ! git show-ref --verify --quiet refs/heads/stable/${CORE_ABI}; then \
+		git update-ref refs/heads/stable/${CORE_ABI} refs/remotes/origin/stable/${CORE_ABI}; \
+		git config branch.stable/${CORE_ABI}.merge refs/heads/stable/${CORE_ABI}; \
+		git config branch.stable/${CORE_ABI}.remote origin; \
+	fi
+
+diff: ensure-stable
 	@git diff --stat -p stable/${CORE_ABI} ${.CURDIR}/${diff_ARGS:[1]}
 
-mfc: clean-mfcdir
+mfc: ensure-stable clean-mfcdir
 .for MFC in ${mfc_ARGS}
 .if exists(${MFC})
 	@cp -r ${MFC} ${MFCDIR}
 	@git checkout stable/${CORE_ABI}
-	@rm -r ${MFC}
+	@rm -rf ${MFC}
 	@mv ${MFCDIR}/$$(basename ${MFC}) ${MFC}
-	@git add .
+	@git add -f .
 	@if ! git diff --quiet HEAD; then \
 		git commit -m "${MFC}: sync with master"; \
 	fi
 .else
 	@git checkout stable/${CORE_ABI}
-	@git cherry-pick -x ${MFC}
+	@if ! git cherry-pick -x ${MFC}; then \
+		git cherry-pick --abort; \
+	fi
 .endif
 	@git checkout master
 .endfor
@@ -428,6 +462,11 @@ stable:
 	@git checkout stable/${CORE_ABI}
 
 master:
+	@git checkout master
+
+rebase:
+	@git checkout stable/${CORE_ABI}
+	@git rebase -i
 	@git checkout master
 
 test: want-phpunit7-php${CORE_PHP}
